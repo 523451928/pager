@@ -1,3 +1,12 @@
+function once(fn) {
+  let called = false
+  return function (...args) {
+    if (called) return
+    called = true
+    return fn.apply(this, args)
+  }
+}
+
 function hasClass(el, cls) {
   if (!el || !cls) return false
   if (cls.indexOf(' ') !== -1) throw new Error('className should not contain space.')
@@ -5,15 +14,6 @@ function hasClass(el, cls) {
     return el.classList.contains(cls)
   } else {
     return (' ' + el.className + ' ').indexOf(' ' + cls + ' ') > -1
-  }
-}
-
-function once(fn) {
-  let called = false
-  return function(...args) {
-    if (called) return
-    called = true
-    return fn.apply(this, args)
   }
 }
 
@@ -83,7 +83,7 @@ Pagination.prototype.init = function() {
   if (!this.$el) {
     throw new Error('pagination should have exist wrapper dom')
   }
-  this.initPagerWrap()
+  this.renderPager()
 }
 
 Pagination.prototype.refresh = function(data) {
@@ -153,30 +153,36 @@ Pagination.prototype.bindInput = function() {
       e.target.value = this.options.pageCount
     }
   })
+  pageInput.addEventListener('keyup', (e) => {
+    if (e.keyCode == 13) {
+      this.trigger('changePage', pageInput.value)
+    }
+  })
 }
 
-Pagination.prototype.initPagerWrap = function() {
+Pagination.prototype.renderPager = function() {
   this.generatePagers()
-  let pageStep = this.options.pageStep
+  
   let currentPage = this.options.currentPage
+  let pagerList = this.pagers.map(page => `<li class="juke-number number ${currentPage == page ? 'active' : ''}" data-page="${page}">${page}</li>`)
+  let pageStep = this.options.pageStep
   let pageCount = this.options.pageCount
   let pagerTemp = `<ul class="juke-pager pager-wrapper ${!pageCount ? 'hide' : ''}" >
-    <li class="prev-page ${currentPage == 1 ? 'disabled' : ''}" title="上一页">${this.options.prevText}</li>
-    <li class="juke-number number" data-page="1" title="第1页">1</li>
-    <li class="more btn-quickprev quick-prev-btn juke-icon-more ${!this.showPrevMore ? 'hide' : ''}" title="上${pageStep}页"></li>
-    <span class="page-content"></span>
-    <li class="more btn-quicknext quick-next-btn juke-icon-more ${!this.showNextMore ? 'hide' : ''}" title="下${pageStep}页"></li>
-    <li class="juke-number number ${!pageCount ? 'hide' : ''}" data-page="${pageCount}">${pageCount}</li>
-    <li class="next-page ${currentPage == pageCount ? 'disabled' : ''}" title="下一页">${this.options.nextText}</li>
-    <span class="to-page ${!this.options.hasToPage ? 'hide' : ''}"> 
-      共有${pageCount} 页 到 
-      <input type="number" value="1" min="1" max="${pageCount}" class="page-input serch-input juke-text-xs line-h" id="page-input"> 
-      页, <span class="confirm-btn"/ > 确定</span>
-    </span>
-  </ul >`
+                      <li class="prev-page ${currentPage == 1 ? 'disabled' : ''}" title="上一页">${this.options.prevText}</li>
+                      <li class="juke-number number ${currentPage == 1 ? 'active' : ''}" data-page="1" title="第1页">1</li>
+                      <li class="more btn-quickprev quick-prev-btn juke-icon-more ${!this.showPrevMore ? 'hide' : ''}" title="上${pageStep}页"></li>
+                      ${pagerList}
+                      <li class="more btn-quicknext quick-next-btn juke-icon-more ${!this.showNextMore ? 'hide' : ''}" title="下${pageStep}页"></li>
+                      <li class="juke-number number ${!pageCount ? 'hide' : ''}  ${currentPage == pageCount ? 'active' : ''}" data-page="${pageCount}">${pageCount}</li>
+                      <li class="next-page ${currentPage == pageCount ? 'disabled' : ''}" title="下一页">${this.options.nextText}</li>
+                      <span class="to-page ${!this.options.hasToPage ? 'hide' : ''}"> 
+                        共有${pageCount} 页 到 
+                        <input type="number" value="1" min="1" max="${pageCount}" class="page-input serch-input juke-text-xs line-h" id="page-input"> 
+                        页, <span class="confirm-btn"/ > 确定</span>
+                      </span>
+                    </ul >`
   this.$el.innerHTML = pagerTemp
-  
-  this.renderPager()
+
   this.bindQuickBtnEvents()
   if (this.options.hasToPage) {
     this.bindInput()
@@ -185,17 +191,6 @@ Pagination.prototype.initPagerWrap = function() {
     this.bindEventsOnce = once(this.bindEvents)
     this.bindEventsOnce.apply(this)
   }
-}
-
-Pagination.prototype.renderPager = function() {
-  let pagerList = this.pagers.map(page => `<li class="juke-number number" data-page="${page}">${page}</li>`)
-  document.querySelector('.page-content').innerHTML = pagerList
-  document.querySelectorAll('.juke-number ').forEach((item) => {
-    removeClass(item, 'active')
-    if (item.getAttribute('data-page') == this.options.currentPage) {
-      addClass(item, 'active')
-    }
-  })
 }
 
 Pagination.prototype.generatePagers = function() {
