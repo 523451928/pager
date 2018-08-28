@@ -61,9 +61,11 @@ function Pagination(data) {
   this.options = Object.assign({
     currentPage: 1,
     el: 'body',
-    quickStep: 5,
+    pageStep: 5,
     pageCount: 1,
-    hasToPage: true
+    hasToPage: true,
+    prevText: '«',
+    nextText: '»'
   }, data)
   let el = this.options.el
   this.$el = typeof el == 'string' ? document.querySelector(el) : el
@@ -78,6 +80,9 @@ function Pagination(data) {
 }
 
 Pagination.prototype.init = function() {
+  if (!this.$el) {
+    throw new Error('pagination should have exist wrapper dom')
+  }
   this.initPagerWrap()
 }
 
@@ -103,12 +108,14 @@ Pagination.prototype.bindEvents = function() {
         return
       }
     }
+
     if (hasClass(evtTarget, 'prev-page')) {
       pageIndex = this.options.currentPage - 1
     }
     if (hasClass(evtTarget, 'next-page')) {
       pageIndex = this.options.currentPage + 1
     }
+
     if (hasClass(evtTarget, 'btn-quickprev')) {
       pageIndex = this.options.currentPage - quickStep || 1
     }
@@ -122,12 +129,14 @@ Pagination.prototype.bindEvents = function() {
 Pagination.prototype.bindQuickBtnEvents = function() {
   let quickprevBtn = document.querySelector('.quick-prev-btn')
   let quicknextBtn = document.querySelector('.quick-next-btn')
+
   quickprevBtn.addEventListener('mouseenter', () => {
     addClass(quickprevBtn, 'juke-icon-d-arrow-left')
   })
   quickprevBtn.addEventListener('mouseleave', () => {
     removeClass(quickprevBtn, 'juke-icon-d-arrow-left')
   })
+
   quicknextBtn.addEventListener('mouseenter', () => {
     addClass(quicknextBtn, 'juke-icon-d-arrow-right')
   })
@@ -148,24 +157,25 @@ Pagination.prototype.bindInput = function() {
 
 Pagination.prototype.initPagerWrap = function() {
   this.generatePagers()
-  
+  let pageStep = this.options.pageStep
   let currentPage = this.options.currentPage
   let pageCount = this.options.pageCount
   let pagerTemp = `<ul class="juke-pager pager-wrapper ${!pageCount ? 'hide' : ''}" >
-    <li class="prev-page ${currentPage == 1 ? 'disabled' : ''}" title="上一页">«</li >
+    <li class="prev-page ${currentPage == 1 ? 'disabled' : ''}" title="上一页">${this.options.prevText}</li>
     <li class="juke-number number" data-page="1" title="第1页">1</li>
-    <li class="more btn-quickprev quick-prev-btn juke-icon-more ${!this.showPrevMore ? 'hide' : ''}" title="上5页"></li >
+    <li class="more btn-quickprev quick-prev-btn juke-icon-more ${!this.showPrevMore ? 'hide' : ''}" title="上${pageStep}页"></li>
     <span class="page-content"></span>
-    <li class="more btn-quicknext quick-next-btn juke-icon-more ${!this.showNextMore ? 'hide' : ''}" title="下5页"></li>
+    <li class="more btn-quicknext quick-next-btn juke-icon-more ${!this.showNextMore ? 'hide' : ''}" title="下${pageStep}页"></li>
     <li class="juke-number number ${!pageCount ? 'hide' : ''}" data-page="${pageCount}">${pageCount}</li>
-    <li class="next-page ${currentPage == pageCount ? 'disabled' : ''}" title="下一页">»</li >
+    <li class="next-page ${currentPage == pageCount ? 'disabled' : ''}" title="下一页">${this.options.nextText}</li>
     <span class="to-page ${!this.options.hasToPage ? 'hide' : ''}"> 
       共有${pageCount} 页 到 
-      <input type="number" value="1" min="1" max="${pageCount}" class="page-input serch-input juke-text-xs line-h" id="page-input" > 
-      页, <span class="confirm-btn"/ > 确定</span >
+      <input type="number" value="1" min="1" max="${pageCount}" class="page-input serch-input juke-text-xs line-h" id="page-input"> 
+      页, <span class="confirm-btn"/ > 确定</span>
     </span>
   </ul >`
   this.$el.innerHTML = pagerTemp
+  
   this.renderPager()
   this.bindQuickBtnEvents()
   if (this.options.hasToPage) {
@@ -229,10 +239,13 @@ Pagination.prototype.generatePagers = function() {
 }
 
 Pagination.prototype.on = function (eventType, fn) {
-  this.events.push({
-    eventType,
-    fn
-  })
+  let isEventTypeExist = this.events.map(event => event.eventType).some(item => item == eventType)
+  if (!isEventTypeExist) {
+    this.events.push({
+      eventType,
+      fn
+    })
+  }
 }
 
 Pagination.prototype.trigger = function (...args) {
