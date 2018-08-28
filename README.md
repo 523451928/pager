@@ -36,6 +36,9 @@ pageInstance.refresh({
 | pageCount | 总共的页数 | Number | 1 |
 | hasToPage | 是否需要快速跳转 | Boolean | true |
 | el | 包裹分页的容器 | String or Dom | 'body' |
+| prevText | 上一页的显示文本 | String | '«' |
+| nextText | 下一页的显示文本 | String | '»' |
+| pageStep | 快速分页的步数 | Number | 5 |
 
 ## 注意事项
 * 分页器的总页数或者当前分页数改变时调用分页器实例的refresh方法即可
