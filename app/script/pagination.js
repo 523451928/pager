@@ -10,7 +10,7 @@ function hasClass(el, cls) {
 
 function once(fn) {
   let called = false
-  return function (...args) {
+  return function(...args) {
     if (called) return
     called = true
     return fn.apply(this, args)
@@ -61,6 +61,7 @@ function Pagination(data) {
   this.options = Object.assign({
     currentPage: 1,
     el: 'body',
+    quickStep: 5,
     pageCount: 1,
     hasToPage: true
   }, data)
@@ -76,18 +77,19 @@ function Pagination(data) {
   this.init()
 }
 
-Pagination.prototype.init = function () {
+Pagination.prototype.init = function() {
   this.initPagerWrap()
 }
 
-Pagination.prototype.refresh = function (data) {
+Pagination.prototype.refresh = function(data) {
   this.options = Object.assign(this.options, data)
   this.init()
 }
 
-Pagination.prototype.bindEvents = function () {
+Pagination.prototype.bindEvents = function() {
   this.$el.addEventListener('click', (e) => {
     let evtTarget = e.target
+    let quickStep = this.options.quickStep
     let pageIndex
     if (hasClass(evtTarget, 'confirm-btn')) {
       pageIndex = document.querySelector('#page-input').value
@@ -108,24 +110,24 @@ Pagination.prototype.bindEvents = function () {
       pageIndex = this.options.currentPage + 1
     }
     if (hasClass(evtTarget, 'btn-quickprev')) {
-      pageIndex = this.options.currentPage - 5
+      pageIndex = this.options.currentPage - quickStep || 1
     }
     if (hasClass(evtTarget, 'btn-quicknext')) {
-      pageIndex = this.options.currentPage + 5
+      pageIndex = Math.min(this.options.currentPage + quickStep, this.options.pageCount)
     }
     pageIndex && this.trigger('changePage', pageIndex)
   })
+}
 
+Pagination.prototype.bindQuickBtnEvents = function() {
   let quickprevBtn = document.querySelector('.quick-prev-btn')
   let quicknextBtn = document.querySelector('.quick-next-btn')
-
   quickprevBtn.addEventListener('mouseenter', () => {
     addClass(quickprevBtn, 'juke-icon-d-arrow-left')
   })
   quickprevBtn.addEventListener('mouseleave', () => {
     removeClass(quickprevBtn, 'juke-icon-d-arrow-left')
   })
-
   quicknextBtn.addEventListener('mouseenter', () => {
     addClass(quicknextBtn, 'juke-icon-d-arrow-right')
   })
@@ -134,7 +136,7 @@ Pagination.prototype.bindEvents = function () {
   })
 }
 
-Pagination.prototype.bindInput = function () {
+Pagination.prototype.bindInput = function() {
   let pageInput = document.querySelector('#page-input')
   pageInput.value = this.options.currentPage
   pageInput.addEventListener('change', (e) => {
@@ -144,17 +146,17 @@ Pagination.prototype.bindInput = function () {
   })
 }
 
-Pagination.prototype.initPagerWrap = function () {
+Pagination.prototype.initPagerWrap = function() {
   this.generatePagers()
-
+  
   let currentPage = this.options.currentPage
   let pageCount = this.options.pageCount
   let pagerTemp = `<ul class="juke-pager pager-wrapper ${!pageCount ? 'hide' : ''}" >
     <li class="prev-page ${currentPage == 1 ? 'disabled' : ''}" title="上一页">«</li >
     <li class="juke-number number" data-page="1" title="第1页">1</li>
-    <li class="juke-icon more btn-quickprev quick-prev-btn juke-icon-more ${!this.showPrevMore ? 'hide' : ''}" title="上5页"></li >
+    <li class="more btn-quickprev quick-prev-btn juke-icon-more ${!this.showPrevMore ? 'hide' : ''}" title="上5页"></li >
     <span class="page-content"></span>
-    <li class="juke-icon more btn-quicknext quick-next-btn juke-icon-more ${!this.showNextMore ? 'hide' : ''}" title="下5页"></li>
+    <li class="more btn-quicknext quick-next-btn juke-icon-more ${!this.showNextMore ? 'hide' : ''}" title="下5页"></li>
     <li class="juke-number number ${!pageCount ? 'hide' : ''}" data-page="${pageCount}">${pageCount}</li>
     <li class="next-page ${currentPage == pageCount ? 'disabled' : ''}" title="下一页">»</li >
     <span class="to-page ${!this.options.hasToPage ? 'hide' : ''}"> 
@@ -165,7 +167,7 @@ Pagination.prototype.initPagerWrap = function () {
   </ul >`
   this.$el.innerHTML = pagerTemp
   this.renderPager()
-
+  this.bindQuickBtnEvents()
   if (this.options.hasToPage) {
     this.bindInput()
   }
@@ -175,7 +177,7 @@ Pagination.prototype.initPagerWrap = function () {
   }
 }
 
-Pagination.prototype.renderPager = function () {
+Pagination.prototype.renderPager = function() {
   let pagerList = this.pagers.map(page => `<li class="juke-number number" data-page="${page}">${page}</li>`)
   document.querySelector('.page-content').innerHTML = pagerList
   document.querySelectorAll('.juke-number ').forEach((item) => {
@@ -186,7 +188,7 @@ Pagination.prototype.renderPager = function () {
   })
 }
 
-Pagination.prototype.generatePagers = function () {
+Pagination.prototype.generatePagers = function() {
   const pagerCount = 7
   const currentPage = Number(this.options.currentPage)
   const pageCount = Number(this.options.pageCount)
