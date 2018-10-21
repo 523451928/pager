@@ -58,10 +58,11 @@ function removeClass(el, cls) {
 }
 
 function Pagination(data) {
+  // 合并选项
   this.options = Object.assign({
-    currentPage: 1,
+    currentPage: 1, 
     el: 'body',
-    pageStep: 5,
+    pageStep: 5, //快速跳转的步数
     pageCount: 1,
     hasToPage: true,
     prevText: '«',
@@ -78,19 +79,19 @@ function Pagination(data) {
   this.pageNum = 1
   this.init()
 }
-
+// 初始化分页
 Pagination.prototype.init = function() {
   if (!this.$el) {
     throw new Error('pagination should have exist wrapper dom')
   }
   this.renderPager()
 }
-
+// 刷新分页
 Pagination.prototype.refresh = function(data) {
   this.options = Object.assign(this.options, data)
   this.init()
 }
-
+// 绑定事件
 Pagination.prototype.bindEvents = function() {
   this.$el.addEventListener('click', (e) => {
     let evtTarget = e.target
@@ -125,7 +126,7 @@ Pagination.prototype.bindEvents = function() {
     pageIndex && this.trigger('changePage', pageIndex)
   })
 }
-
+// 快速按钮绑定事件
 Pagination.prototype.bindQuickBtnEvents = function() {
   let quickprevBtn = document.querySelector('.quick-prev-btn')
   let quicknextBtn = document.querySelector('.quick-next-btn')
@@ -144,7 +145,7 @@ Pagination.prototype.bindQuickBtnEvents = function() {
     removeClass(quicknextBtn, 'juke-icon-d-arrow-right')
   })
 }
-
+// input绑定事件
 Pagination.prototype.bindInput = function() {
   let pageInput = document.querySelector('#page-input')
   pageInput.value = this.options.currentPage
@@ -159,7 +160,7 @@ Pagination.prototype.bindInput = function() {
     }
   })
 }
-
+// 生成分页器dom节点数
 Pagination.prototype.renderPager = function() {
   this.generatePagers()
   
@@ -192,7 +193,7 @@ Pagination.prototype.renderPager = function() {
     this.bindEventsOnce.apply(this)
   }
 }
-
+// 生成分页器所需的数据
 Pagination.prototype.generatePagers = function() {
   const pagerCount = 7
   const currentPage = Number(this.options.currentPage)
