@@ -1,12 +1,3 @@
-function once(fn) {
-  let called = false
-  return function (...args) {
-    if (called) return
-    called = true
-    return fn.apply(this, args)
-  }
-}
-
 function hasClass(el, cls) {
   if (!el || !cls) return false
   if (cls.indexOf(' ') !== -1) throw new Error('className should not contain space.')
@@ -14,6 +5,15 @@ function hasClass(el, cls) {
     return el.classList.contains(cls)
   } else {
     return (' ' + el.className + ' ').indexOf(' ' + cls + ' ') > -1
+  }
+}
+
+function once(fn) {
+  let called = false
+  return function (...args) {
+    if (called) return
+    called = true
+    return fn.apply(this, args)
   }
 }
 
@@ -57,17 +57,44 @@ function removeClass(el, cls) {
   }
 }
 
-function Pagination(data) {
-  // 合并选项
+
+let createEventHub = () => ({
+  hub: Object.create(null),
+  $emit(event, data) {
+    (this.hub[event] || []).forEach(handler => handler(data))
+  },
+  $on(event, handler) {
+    if (!this.hub[event]) this.hub[event] = []
+    this.hub[event].push(handler)
+  },
+  $off(event, handler) {
+    const i = (this.hub[event] || []).findIndex(h => h === handler)
+    if (i > -1) this.hub[event].splice(i, 1)
+  },
+  $once(event, handler) {
+    let listener = (...args) => {
+      if (handler) {
+        handler.apply(this, args)
+      }
+      this.$off(event, listener)
+    }
+    this.$on(event, listener)
+  }
+})
+
+function Pagination(options) {
   this.options = Object.assign({
-    currentPage: 1, 
+    currentPage: 1,
     el: 'body',
-    pageStep: 5, //快速跳转的步数
+    pageStep: 5,
     pageCount: 1,
     hasToPage: true,
     prevText: '«',
-    nextText: '»'
-  }, data)
+    nextText: '»',
+    hasSelectPageSize: true,
+    pageSizes: [5, 10, 20, 50],
+    pageSize: 5
+  }, options)
   let el = this.options.el
   this.$el = typeof el == 'string' ? document.querySelector(el) : el
   this.showPrevMore = false
@@ -77,26 +104,35 @@ function Pagination(data) {
   this.pagers = []
   this.events = []
   this.pageNum = 1
+  this.eventObj = createEventHub()
   this.init()
 }
-// 初始化分页
-Pagination.prototype.init = function() {
+
+Pagination.prototype.init = function () {
   if (!this.$el) {
     throw new Error('pagination should have exist wrapper dom')
   }
-  this.renderPager()
+  this.initPagerWrap()
 }
-// 刷新分页
-Pagination.prototype.refresh = function(data) {
+
+Pagination.prototype.refresh = function (data) {
   this.options = Object.assign(this.options, data)
   this.init()
 }
-// 绑定事件
-Pagination.prototype.bindEvents = function() {
+
+Pagination.prototype.bindEvents = function () {
   this.$el.addEventListener('click', (e) => {
     let evtTarget = e.target
-    let quickStep = this.options.quickStep
+    let quickStep = this.options.pageStep
     let pageIndex
+
+    if (hasClass(evtTarget, 'select-option')) {
+      let changedPageSize = this.options.pageSizes[evtTarget.selectedIndex]
+      if (changedPageSize !== this.options.pageSize) {
+        this.trigger('changePageSize', changedPageSize)
+      }
+    }
+
     if (hasClass(evtTarget, 'confirm-btn')) {
       pageIndex = document.querySelector('#page-input').value
     }
@@ -126,8 +162,8 @@ Pagination.prototype.bindEvents = function() {
     pageIndex && this.trigger('changePage', pageIndex)
   })
 }
-// 快速按钮绑定事件
-Pagination.prototype.bindQuickBtnEvents = function() {
+
+Pagination.prototype.bindQuickBtnEvents = function () {
   let quickprevBtn = document.querySelector('.quick-prev-btn')
   let quicknextBtn = document.querySelector('.quick-next-btn')
 
@@ -145,8 +181,8 @@ Pagination.prototype.bindQuickBtnEvents = function() {
     removeClass(quicknextBtn, 'juke-icon-d-arrow-right')
   })
 }
-// input绑定事件
-Pagination.prototype.bindInput = function() {
+
+Pagination.prototype.bindInput = function () {
   let pageInput = document.querySelector('#page-input')
   pageInput.value = this.options.currentPage
   pageInput.addEventListener('change', (e) => {
@@ -154,36 +190,40 @@ Pagination.prototype.bindInput = function() {
       e.target.value = this.options.pageCount
     }
   })
-  pageInput.addEventListener('keyup', (e) => {
-    if (e.keyCode == 13) {
-      this.trigger('changePage', pageInput.value)
-    }
-  })
 }
-// 生成分页器dom节点数
-Pagination.prototype.renderPager = function() {
+
+Pagination.prototype.initPagerWrap = function () {
   this.generatePagers()
-  
-  let currentPage = this.options.currentPage
-  let pagerList = this.pagers.map(page => `<li class="juke-number number ${currentPage == page ? 'active' : ''}" data-page="${page}">${page}</li>`)
   let pageStep = this.options.pageStep
+  let currentPage = this.options.currentPage
   let pageCount = this.options.pageCount
-  let pagerTemp = `<ul class="juke-pager pager-wrapper ${!pageCount ? 'hide' : ''}" >
-                      <li class="prev-page ${currentPage == 1 ? 'disabled' : ''}" title="上一页">${this.options.prevText}</li>
-                      <li class="juke-number number ${currentPage == 1 ? 'active' : ''}" data-page="1" title="第1页">1</li>
-                      <li class="more btn-quickprev quick-prev-btn juke-icon-more ${!this.showPrevMore ? 'hide' : ''}" title="上${pageStep}页"></li>
-                      ${pagerList}
-                      <li class="more btn-quicknext quick-next-btn juke-icon-more ${!this.showNextMore ? 'hide' : ''}" title="下${pageStep}页"></li>
-                      <li class="juke-number number ${!pageCount ? 'hide' : ''}  ${currentPage == pageCount ? 'active' : ''}" data-page="${pageCount}">${pageCount}</li>
-                      <li class="next-page ${currentPage == pageCount ? 'disabled' : ''}" title="下一页">${this.options.nextText}</li>
-                      <span class="to-page ${!this.options.hasToPage ? 'hide' : ''}"> 
-                        共有${pageCount} 页 到 
-                        <input type="number" value="1" min="1" max="${pageCount}" class="page-input serch-input juke-text-xs line-h" id="page-input"> 
-                        页, <span class="confirm-btn"/ > 确定</span>
-                      </span>
-                    </ul >`
+  let pageSizesTemp
+
+  if (this.options.pageSizes && this.options.hasSelectPageSize) {
+    let sizeOptionsTemp = this.options.pageSizes.map(page => page === this.options.pageSize
+      ? `<option value="${page}" selected="selected">${page}条 / 页</option>`
+      : `<option value="${page}">${page}条 / 页</option>`)
+    pageSizesTemp = ` <select class="select-option" id="select-option" style="width: 120px;">${sizeOptionsTemp}</select>`
+  }
+
+  let pagerTemp = `<ul class="juke-pager pager-wrapper ${!pageCount || pageCount == 1 ? 'hide' : ''}" >
+    ${pageSizesTemp}
+    <li class="prev-page ${currentPage == 1 ? 'disabled' : ''}" title="上一页">${this.options.prevText}</li>
+    <li class="juke-number number" data-page="1" title="第1页">1</li>
+    <li class="more btn-quickprev quick-prev-btn juke-icon-more ${!this.showPrevMore ? 'hide' : ''}" title="上${pageStep}页"></li>
+    <span class="page-content"></span>
+    <li class="more btn-quicknext quick-next-btn juke-icon-more ${!this.showNextMore ? 'hide' : ''}" title="下${pageStep}页"></li>
+    <li class="juke-number number ${!pageCount || pageCount == 1 ? 'hide' : ''}" data-page="${pageCount}">${pageCount}</li>
+    <li class="next-page ${currentPage == pageCount ? 'disabled' : ''}" title="下一页">${this.options.nextText}</li>
+    <span class="to-page ${!this.options.hasToPage ? 'hide' : ''}">
+      共有${pageCount} 页 到
+      <input type="number" value="1" min="1" max="${pageCount}" class="page-input serch-input juke-text-xs line-h" id="page-input">
+      页, <span class="confirm-btn"/ > 确定</span>
+    </span>
+  </ul >`
   this.$el.innerHTML = pagerTemp
 
+  this.renderPager()
   this.bindQuickBtnEvents()
   if (this.options.hasToPage) {
     this.bindInput()
@@ -193,8 +233,19 @@ Pagination.prototype.renderPager = function() {
     this.bindEventsOnce.apply(this)
   }
 }
-// 生成分页器所需的数据
-Pagination.prototype.generatePagers = function() {
+
+Pagination.prototype.renderPager = function () {
+  let pagerList = this.pagers.map(page => `<li class="juke-number number" data-page="${page}">${page}</li>`)
+  document.querySelector('.page-content').innerHTML = pagerList
+  document.querySelectorAll('.juke-number ').forEach((item) => {
+    removeClass(item, 'active')
+    if (item.getAttribute('data-page') == this.options.currentPage) {
+      addClass(item, 'active')
+    }
+  })
+}
+
+Pagination.prototype.generatePagers = function () {
   const pagerCount = 7
   const currentPage = Number(this.options.currentPage)
   const pageCount = Number(this.options.pageCount)
@@ -271,3 +322,4 @@ Pagination.prototype.once = function (eventType, fn) {
 }
 
 export default Pagination
+
