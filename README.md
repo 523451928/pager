@@ -35,10 +35,13 @@ pageInstance.refresh({
 | currentPage | 当前分页的数值 | Number | 1 |
 | pageCount | 总共的页数 | Number | 1 |
 | hasToPage | 是否需要快速跳转 | Boolean | true |
+| hsaSelectPageSize | 是否需要选择每页条数 | true |
 | el | 包裹分页的容器 | String or Dom | 'body' |
 | prevText | 上一页的显示文本 | String | '«' |
 | nextText | 下一页的显示文本 | String | '»' |
 | pageStep | 快速分页的步数 | Number | 5 |
+| pageSize | 每页条数 | Number | 5 |
+| pageSizes | 分页选项 | Array | [5, 10, 20, 50] |
 
 ## 注意事项
 * 分页器的总页数或者当前分页数改变时调用分页器实例的refresh方法即可
